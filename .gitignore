@@ -3,3 +3,4 @@ build/
 .cache/
 cert.pem
 key.pem
+server

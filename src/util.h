@@ -5,9 +5,9 @@
 
 struct client {
     struct bufferevent *bev;
-    char nick[32];
-    char channel[32];
-    int registered;    // track USER/NICK registration per client
+    char *nick;
+    char *channel;
+    int registered;
     struct client *next;
 };
 
