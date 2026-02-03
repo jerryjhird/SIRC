@@ -1,29 +1,26 @@
 #include <event2/event.h>
 #include <event2/bufferevent_ssl.h> 
 #include <event2/bufferevent.h>
+#include <event2/buffer.h>
 #include <event2/listener.h>
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include "util.h"
-#include "conf.h"
 #include "secure.h"
 #include "packets.h"
 
 static SSL_CTX *ssl_ctx = NULL;
 
-static void read_cb(struct bufferevent *bev, void *ctx) {
+void read_cb(struct bufferevent *bev, void *ctx) {
     (void)ctx;
-    char buf[1024];
-    int n = bufferevent_read(bev, buf, sizeof(buf) - 1);
-    buf[n] = '\0';
-    printf("Got: %s", buf);
+    struct evbuffer *input = bufferevent_get_input(bev);
+    char *line;
+    size_t n;
 
-    // handle each line separately
-    char *line = strtok(buf, "\r\n");
-    while (line) {
-        handle_line(bev, line);
-        line = strtok(NULL, "\r\n");
+    while ((line = evbuffer_readln(input, &n, EVBUFFER_EOL_CRLF)) != NULL) {
+        handle_packet(bev, line);
+        free(line);
     }
 }
 
@@ -55,28 +52,44 @@ static void accept_cb(struct evconnlistener *listener, evutil_socket_t fd,
     bufferevent_write(bev, welcome, strlen(welcome));
 }
 
-int main(void) {
+int main(int argc, char **argv)
+{
+    if (argc != 3) {
+        fprintf(stderr, "usage: %s <cert.pem> <key.pem>\n", argv[0]);
+        return 1;
+    }
+
+    const char *cert_path = argv[1];
+    const char *key_path  = argv[2];
+
     struct event_base *base = event_base_new();
     if (!base) {
         fprintf(stderr, "Could not init libevent!\n");
         return 1;
     }
 
-    ssl_ctx = init_ssl_ctx("cert.pem", "key.pem");
+    ssl_ctx = init_ssl_ctx(cert_path, key_path);
     if (!ssl_ctx) {
         fprintf(stderr, "Failed to init SSL context.\n");
+        event_base_free(base);
         return 1;
     }
 
     struct sockaddr_in sin = {0};
     sin.sin_family = AF_INET;
-    sin.sin_port = htons(CONF_PORT); // standard IRC SSL port
+    sin.sin_port = htons(1816);
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
 
     struct evconnlistener *listener =
-        evconnlistener_new_bind(base, accept_cb, NULL,
-                                LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE, -1,
-                                (struct sockaddr*)&sin, sizeof(sin));
+        evconnlistener_new_bind(
+            base,
+            accept_cb,
+            NULL,
+            LEV_OPT_CLOSE_ON_FREE | LEV_OPT_REUSEABLE,
+            -1,
+            (struct sockaddr*)&sin,
+            sizeof(sin)
+        );
 
     if (!listener) {
         perror("couldnt create listener");
@@ -85,7 +98,7 @@ int main(void) {
         return 1;
     }
 
-    printf("server running on port %d...\n", CONF_PORT);
+    printf("server running on port %d...\n", 1816);
     event_base_dispatch(base);
 
     evconnlistener_free(listener);

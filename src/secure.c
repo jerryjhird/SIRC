@@ -3,7 +3,6 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 
-
 SSL_CTX *init_ssl_ctx(const char *cert_file, const char *key_file) {
     SSL_library_init();
     OpenSSL_add_all_algorithms();
