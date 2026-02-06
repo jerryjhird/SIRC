@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <event2/bufferevent_ssl.h>
 
 SSL_CTX *init_ssl_ctx(const char *cert_file, const char *key_file) {
     SSL_library_init();

@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <event2/bufferevent.h>
 
-/* command table */
+// command table
 typedef void (*irc_handler_fn)(struct bufferevent *, const char *);
 
 struct irc_command {
@@ -20,6 +20,13 @@ static const struct irc_command irc_commands[] = {
     { "CAP",     irc_packet_cap },
     { "MODE",    irc_packet_mode },
     { "WHO",     irc_packet_who },
+    { "LIST",    irc_packet_list },
+    { "PING",    irc_packet_ping },
+    { "PART",    irc_packet_part},
+    { "TOPIC",   irc_packet_topic},
+    { "NAMES", irc_packet_names },
+    { "AWAY",  irc_packet_away },
+    { "WHOIS", irc_packet_whois},
     { "QUIT",    irc_packet_quit },
     { NULL,      NULL }
 };
